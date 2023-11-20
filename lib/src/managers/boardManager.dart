@@ -426,7 +426,6 @@ class _BoardManagerState extends State<BoardManager> {
         ? widget.currentUser.uid
         : cardData[selectedCard!].createdBy;
 
-    print(pickedLabels);
     Map<String, dynamic> data = {
       'title': (cardNameControllers[0].text == '')
           ? 'Temp Title'
