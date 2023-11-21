@@ -832,9 +832,6 @@ class _BoardViewerState extends State<BoardViewer> {
                     cards: currentCardData,
                     users: createDropDown(),
                     usersProfiles: widget.users,
-                    completedTasks: completedTasks != null
-                        ? completedTasks[currentEpic]
-                        : null,
                     currentUser:
                         UserData.fromJSON(widget.users[widget.currentUID])),
                 selectedProject == ''
