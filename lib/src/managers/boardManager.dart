@@ -9,36 +9,39 @@ import '../taskWidgets.dart';
 import '../util/buttons_and_ui.dart';
 import '../util/dropdowns.dart';
 import '../util/textformfield.dart';
+import '../util/ui.dart';
 
 class BoardManager extends StatefulWidget {
-  const BoardManager({
-    Key? key,
-    required this.update,
-    this.onSubmit,
-    this.onEdit,
-    this.onTitleChange,
-    this.onFocusNode,
-    this.callback,
-    this.onBoardDelete,
-    this.onPriorityBoardChange,
-    this.onCreateCard,
-    this.assignPoints,
-    this.onEditCard,
-    this.onCardDelete,
-    this.onCardPriorityChange,
-    required this.projectId,
-    required this.boardData,
-    required this.cards,
-    this.width,
-    this.height,
-    this.boardWidth = 240,
-    this.allowEditing = true,
-    this.screenOffset = const Offset(0, 0),
-    required this.users,
-    required this.usersProfiles,
-    required this.currentUser,
-    this.labels,
-  }) : super(key: key);
+  const BoardManager(
+      {Key? key,
+      required this.update,
+      this.onSubmit,
+      this.onEdit,
+      this.onTitleChange,
+      this.onFocusNode,
+      this.callback,
+      this.onBoardDelete,
+      this.onPriorityBoardChange,
+      this.onCreateCard,
+      this.assignPoints,
+      this.onEditCard,
+      this.onCardDelete,
+      this.onCardPriorityChange,
+      required this.projectId,
+      required this.boardData,
+      required this.cards,
+      required this.width,
+      required this.height,
+      this.boardWidth = 240,
+      this.allowEditing = true,
+      this.screenOffset = const Offset(0, 0),
+      required this.users,
+      required this.usersProfiles,
+      required this.currentUser,
+      this.labels,
+      this.completedTasks,
+      this.points})
+      : super(key: key);
 
   /// Callback for board submision/creationj
   final Function(String title, int priority, bool notify)? onSubmit;
@@ -54,6 +57,10 @@ class BoardManager extends StatefulWidget {
 
   /// ID of project that contains the boards
   final String projectId;
+
+  final dynamic completedTasks;
+
+  final dynamic points;
 
   final Function()? onFocusNode;
 
@@ -190,6 +197,11 @@ class _BoardManagerState extends State<BoardManager> {
   int updateBoardId = 0;
 
   dynamic labelData;
+  Map<String, CardData>? currentCardData;
+  String currentProject = '';
+  dynamic completedTasks;
+  dynamic points;
+  bool showChart = false;
 
   @override
   void initState() {
@@ -205,6 +217,11 @@ class _BoardManagerState extends State<BoardManager> {
 
   // Initlizes default state of boardManager
   void start() {
+    points = widget.points;
+    completedTasks = widget.completedTasks;
+    currentProject = widget.projectId;
+    showChart = currentProject != '';
+    currentCardData = widget.cards;
     labelData = widget.labels;
     height = (widget.height == null)
         ? MediaQuery.of(context).size.height
@@ -213,7 +230,7 @@ class _BoardManagerState extends State<BoardManager> {
         ? MediaQuery.of(context).size.width
         : widget.width!;
     boardWidth = widget.boardWidth;
-    cardData = widget.cards.entries.map((e) => e.value).toList();
+    cardData = currentCardData!.entries.map((e) => e.value).toList();
     boardData = widget.boardData.entries.map((e) => e.value).toList();
     assignDropDown = setDropDownItems(widget.users);
     editorDropDown = setDropDownItems(widget.users);
@@ -233,6 +250,11 @@ class _BoardManagerState extends State<BoardManager> {
 
   /// Reset Card to Data to its defaults
   void cardReset() {
+    showChart = false;
+    points = null;
+    completedTasks = null;
+    currentProject = '';
+    currentCardData = null;
     cardComments = null;
     cardCheckList = null;
     selectedCard = null;
@@ -451,7 +473,7 @@ class _BoardManagerState extends State<BoardManager> {
     Map<String, dynamic> toSend = {
       'data': data,
       'board': boardId,
-      'project': widget.projectId,
+      'project': currentProject,
       'priority': priority
     };
     if (widget.onCreateCard != null && isNewCard) {
@@ -2199,6 +2221,330 @@ class _BoardManagerState extends State<BoardManager> {
     });
   }
 
+  // Creates side chart that displays tasks and points
+  Widget chartInfo() {
+    List<String> names = ['Complete', 'Overdue', 'Planned', 'No Due Date'];
+    List<Color> colors = [Colors.blue, Colors.red, Colors.orange, Colors.grey];
+    List<int> amount = [0, 0, 0, 0];
+
+    // Cricle indicator that shows how many tasks are in progress, completed, overdue, etc.
+    Widget indicator(String text, Color color, int amount, int total) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                    color: Theme.of(context).primaryTextTheme.subtitle1!.color,
+                    //color: color,
+                    borderRadius: const BorderRadius.all(Radius.circular(5)),
+                    border: Border.all(width: 2.5, color: color)),
+              ),
+              Text(
+                ' $text',
+                style: TextStyle(
+                    fontFamily: 'MuseoSans',
+                    package: 'css',
+                    fontSize: 10,
+                    color: Theme.of(context).primaryTextTheme.subtitle1!.color,
+                    decoration: TextDecoration.none),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              Text(
+                amount.toString(),
+                style: TextStyle(
+                    fontFamily: 'MuseoSans',
+                    package: 'css',
+                    fontSize: 10,
+                    color: Theme.of(context).primaryTextTheme.subtitle1!.color,
+                    decoration: TextDecoration.none),
+              ),
+              Text(
+                ' (${(total == 0 || amount == 0) ? 0 : (amount / total * 100).floor()}%',
+                style: TextStyle(
+                    fontFamily: 'MuseoSans',
+                    package: 'css',
+                    fontSize: 10,
+                    color: Theme.of(context).primaryTextTheme.subtitle1!.color,
+                    decoration: TextDecoration.none),
+              ),
+            ],
+          )
+        ],
+      );
+    }
+
+    int total = 0;
+    if (currentCardData!.isNotEmpty) {
+      total = currentCardData!.length;
+    }
+
+    List<Widget> info = [];
+    List<Widget> circles = [];
+
+    // Adds completed tasks to total tasks to display on indicators
+    if (completedTasks != null && showChart) {
+      int tasks = 0;
+
+      if (completedTasks[currentProject] != null) {
+        tasks += completedTasks[currentProject].length as int;
+      }
+
+      total += tasks;
+      amount[0] = tasks;
+    }
+
+    List<String> emp = [];
+    int maxVal = 0;
+    // complete, overdue, planned, pts
+    List<List<int>> work = [];
+    int i = 0;
+    if (points != null) {
+      for (String key in points.keys) {
+        emp.add(key);
+        work.add([0, 0, 0, 0]);
+        if (points[key][currentProject] != null) {
+          for (String cKey in points[key][currentProject].keys) {
+            work[i][0]++;
+            work[i][3] += points[key][currentProject][cKey]['points'] as int;
+          }
+        }
+        i++;
+      }
+    }
+
+    void checkEmp(String? per, int loc) {
+      if (per != null) {
+        bool hasPer = false;
+        for (int i = 0; i < emp.length; i++) {
+          if (per == emp[i]) {
+            hasPer = true;
+            work[i][loc]++;
+            break;
+          }
+        }
+        if (!hasPer) {
+          emp.add(per);
+          if (loc == 1) {
+            work.add([0, 1, 0, 0]);
+          } else {
+            work.add([0, 0, 1, 0]);
+          }
+        }
+      }
+    }
+
+    void getMax() {
+      for (int i = 0; i < emp.length; i++) {
+        int temp = work[i][0] + work[i][1] + work[i][2];
+        if (temp > maxVal) {
+          maxVal = temp;
+        }
+      }
+    }
+
+    // Adds tasks to indicators
+    if (currentCardData!.isNotEmpty) {
+      for (String i in currentCardData!.keys) {
+        if (currentCardData![i]!.dueDate != null) {
+          DateTime now = DateTime.now();
+          DateTime due = DateTime.parse(
+              currentCardData![i]!.dueDate!.replaceAll('T', ' '));
+          if (currentCardData![i]!.assigned.isNotEmpty) {
+            for (int j = 0; j < currentCardData![i]!.assigned.length; j++) {
+              if (now.isAfter(due)) {
+                amount[1]++;
+                checkEmp(currentCardData![i]!.assigned[j], 1);
+              } else {
+                amount[2]++;
+                checkEmp(currentCardData![i]!.assigned[j], 2);
+              }
+            }
+          }
+        } else {
+          amount[3]++;
+        }
+      }
+    }
+    getMax();
+
+    // Bar charts that display users points
+    List<Widget> barChart = [];
+    if (completedTasks != null) {
+      for (int i = 0; i < emp.length; i++) {
+        barChart.add(SizedBox(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  SingleUserIcon(
+                    uid: emp[i],
+                    color: Colors.teal,
+                    loc: 0,
+                    iconSize: 35,
+                    usersProfile: widget.users,
+                  ),
+                  const SizedBox(
+                    width: 5,
+                  ),
+                  Container(
+                    margin: const EdgeInsets.only(top: 5, bottom: 5),
+                    height: 20,
+                    width: maxVal == 0 ? 0 : 115 * work[i][0] / maxVal,
+                    color: Colors.blue,
+                  ),
+                  Container(
+                    margin: const EdgeInsets.only(top: 5, bottom: 5),
+                    height: 20,
+                    width: maxVal == 0 ? 0 : 115 * work[i][1] / maxVal,
+                    color: Colors.red,
+                  ),
+                  Container(
+                    margin: const EdgeInsets.only(top: 5, bottom: 5),
+                    height: 20,
+                    width: maxVal == 0 ? 0 : 115 * work[i][2] / maxVal,
+                    color: Colors.orange,
+                  ),
+                ],
+              ),
+              RichText(
+                  text: TextSpan(
+                text: "Pts: ", //+work[i][3].toString(),
+                children: [
+                  TextSpan(
+                    text: work[i][3].toString(),
+                    style: TextStyle(
+                        fontFamily: 'Klavika Bold',
+                        package: 'css',
+                        fontSize: 10,
+                        color:
+                            Theme.of(context).primaryTextTheme.subtitle1!.color,
+                        decoration: TextDecoration.none),
+                  )
+                ],
+                style: TextStyle(
+                    fontFamily: 'MuseoSans',
+                    package: 'css',
+                    fontSize: 10,
+                    color: Theme.of(context).primaryTextTheme.subtitle1!.color,
+                    decoration: TextDecoration.none),
+              )),
+              const SizedBox(
+                height: 10,
+              ),
+            ],
+          ),
+        ));
+      }
+    } else {
+      barChart.add(Container());
+    }
+
+    double start = 0;
+    double finish = 0;
+    for (int i = 0; i < 4; i++) {
+      info.add(indicator(names[i], colors[i], amount[i], total));
+      if (total != 0) {
+        start += finish.ceil();
+        finish = 360 * (amount[i] / total);
+
+        circles.add(ClipRect(
+            child: Align(
+                alignment: Alignment.center,
+                child: Container(
+                  width: 120,
+                  height: 120,
+                  alignment: Alignment.center,
+                  child: CustomPaint(
+                    painter: OpenPainter(
+                      color: colors[i],
+                      innerRadius: 150 / 1.9,
+                      outerRadius: 150 / 1.9 / (1 + 0.15),
+                      total: 1,
+                      useStroke: false,
+                      percentage: 0.99,
+                      startAngle: 360 - start,
+                      sweepAngle: finish,
+                      setOffset: const Offset(0, 0),
+                    ),
+                  ),
+                ))));
+      }
+    }
+    circles.add(Container(
+        alignment: Alignment.center,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              total.toString(),
+              style: TextStyle(
+                  fontFamily: 'MuseoSans',
+                  package: 'css',
+                  fontSize: 36,
+                  color: Theme.of(context).primaryTextTheme.subtitle1!.color,
+                  decoration: TextDecoration.none),
+            ),
+            Text(
+              'Total Tasks',
+              style: TextStyle(
+                  fontFamily: 'MuseoSans',
+                  package: 'css',
+                  fontSize: 10,
+                  color: Theme.of(context).primaryTextTheme.subtitle1!.color,
+                  decoration: TextDecoration.none),
+            ),
+          ],
+        )));
+
+    return Container(
+        height: widget.height,
+        decoration:
+            BoxDecoration(color: Theme.of(context).canvasColor, boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).shadowColor,
+            blurRadius: 5,
+            offset: const Offset(-5, 3),
+          ),
+        ]),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 180,
+              height: 180,
+              //padding: EdgeInsets.all(10),
+              child: Stack(children: circles),
+            ),
+            Container(
+              width: 180,
+              height: 80,
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: info),
+            ),
+            Container(
+              width: 180,
+              height: widget.height! - 180 - 80,
+              padding: const EdgeInsets.all(10),
+              child: ListView(
+                  padding: const EdgeInsets.all(0),
+                  //mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: barChart),
+            ),
+          ],
+        ));
+  }
+
   @override
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -2215,6 +2561,18 @@ class _BoardManagerState extends State<BoardManager> {
         setState(() {});
 
         start();
+      }
+
+      if (currentCardData != widget.cards) {
+        setState(() {
+          start();
+        });
+      }
+
+      if (completedTasks != widget.completedTasks) {
+        setState(() {
+          start();
+        });
       }
     });
 
@@ -2240,22 +2598,31 @@ class _BoardManagerState extends State<BoardManager> {
                     updateCardPriority(details.offset);
                   }
                 }, builder: (context, List<int?> candidateData, rejectedData) {
-                  return Container(
-                      height: height,
-                      width: width,
-                      color: Theme.of(context).canvasColor,
-                      child: GestureDetector(
-                          onHorizontalDragUpdate: (dragUpdateDetails) {
-                            double pos = _scrollController.offset -
-                                dragUpdateDetails.delta.dx;
-                            _scrollController.jumpTo(pos);
-                          },
-                          child: ListView(
-                              controller: _scrollController,
-                              padding:
-                                  const EdgeInsets.only(left: 10, right: 10),
-                              scrollDirection: Axis.horizontal,
-                              children: boardList())));
+                  return Stack(
+                    children: [
+                      Container(
+                          height: height,
+                          width: showChart ? width - 180 : width,
+                          color: Theme.of(context).canvasColor,
+                          child: GestureDetector(
+                              onHorizontalDragUpdate: (dragUpdateDetails) {
+                                double pos = _scrollController.offset -
+                                    dragUpdateDetails.delta.dx;
+                                _scrollController.jumpTo(pos);
+                              },
+                              child: ListView(
+                                  controller: _scrollController,
+                                  padding: const EdgeInsets.only(
+                                      left: 10, right: 10),
+                                  scrollDirection: Axis.horizontal,
+                                  children: boardList()))),
+                      showChart
+                          ? Align(
+                              alignment: Alignment.centerRight,
+                              child: chartInfo())
+                          : Container()
+                    ],
+                  );
                 })
               : Container(
                   height: height,
