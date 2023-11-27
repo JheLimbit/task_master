@@ -134,7 +134,7 @@ class _MyHomePageState extends State<MyHomePage> {
               Align(
                   alignment: Alignment.centerRight,
                   child: BoardViewer(
-                      completedData: completeData == null ? null : completeData,
+                      completedData: completeData,
                       labels: labels == null ? null : labels['epic2'],
                       epic: 'epic2',
                       project: selectedProject,
