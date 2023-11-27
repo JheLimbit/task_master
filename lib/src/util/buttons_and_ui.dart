@@ -56,6 +56,7 @@ Color responsiveColor(Color color, [double amount = .1]) {
       : lighten(color, amount);
 }
 
+/// Returns darker version of color passesd
 Color darken(Color color, [double amount = .1]) {
   if (amount > 1) {
     amount = 1;
@@ -80,7 +81,7 @@ double responsive({double? width, double smallest = 650, int total = 1}) {
   }
 }
 
-///
+/// Returns lighter version of color passed
 Color lighten(Color color, [double amount = .1]) {
   if (amount > 1) {
     amount = 1;
@@ -382,6 +383,7 @@ class UserIcon extends StatelessWidget {
   }
 }
 
+/// Use to display info on the epic and project at the top of the page
 class TopInfo extends StatelessWidget {
   const TopInfo(
       {Key? key,
