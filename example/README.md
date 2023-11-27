@@ -6,3 +6,5 @@ Additional features present in the example application:
 - Implementation of a points counter/progress monitor chart on the right of the application
 - Dynamic update of task manager when changes detected in Firebase database
     - See the board_viewer.dart and project_viewer.dart for example implementations of this
+
+** Example application won't run unless you initialize Firebase on the application and appropiately change certain code to link to your database **
