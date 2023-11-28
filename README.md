@@ -107,7 +107,7 @@ onSubmit: (title, image, date, color) async {
         'image': (image == ' ') ? 'temp' : image,
         'color': color,
     });
-    },
+},
 ```
 
 ## JSON of an epic with 1 project, assigned 1 board, with 1 card in that board (see example app for implementation)
