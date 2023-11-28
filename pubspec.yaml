@@ -1,6 +1,6 @@
 name: task_master
-description: A new Flutter package project.
-version: 0.0.1
+description: A Flutter package to help you implement a feature-rich task management system into your application
+version: 1.0.0
 homepage:
 
 environment:
