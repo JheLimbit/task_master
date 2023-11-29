@@ -15,7 +15,6 @@ and the Flutter guide for
 
 Use this package to implement a task management system in your Flutter application.
 
-![Walkthrough gif](./docs/Feature%20Walkthrough.gif)
 ![Picture of the task manager UI](./docs/Task%20Manager.png)
 
 # Features
