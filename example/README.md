@@ -31,8 +31,8 @@ Label adding to task
 ![](../docs/Adding%20label%20to%20card.gif)
 
 Board Dragging/Reordering
-![](../docs/Board%Drag.gif)
+![](../docs/Board%20Drag.gif)
 
 Task Completion (note scores kept on side chart)
-![](../docs/Task%Completion.gif)
+![](../docs/Task%20Completion.gif)
 
