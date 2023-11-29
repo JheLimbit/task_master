@@ -19,6 +19,8 @@ Use this package to implement a task management system in your Flutter applicati
 
 # Features
 
+[* See implementation in example app *](./example/README.d)
+
 Projects:
 - Create Boards to keep track of progress 
 - Mark a project as complete
